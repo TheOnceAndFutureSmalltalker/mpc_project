@@ -8,3 +8,12 @@ This project is a C++ implementation of a PMC controller for controlling steerin
 <p align="center">
 <img src="https://github.com/TheOnceAndFutureSmalltalker/mpc_project/blob/master/img/simulator.JPG" width="802px" /><br /><b>Car on Track Simulator</b></p>
 <br />
+
+## PMC Controller
+
+## Approach
+
+I used the solution code provided in the Udacity Lesson 20 Model Predictive Controller.  This provided the basic outline for implementing the MPC solution.  It uses the external library CppAd for calculating derivatives of functions and the Ipopt library for solving an optimization problem.  
+
+
+I also followed the Udacity walkthrough video for this project provided by <a href="https://youtu.be/bOQuhpz3YfU?list=PLAwxTw4SYaPnfR7TzRZN-uxlxGbqxhtm2">this link</a>.  The main point of interest in this approach is that the waypoints provided by the simulation are transposed from map coordinates to car coordinates with the car at (0,0) and zero angle of orientation.  The entire problem is then solved in car coordinates.  This makes it easy providing the waypoints and planned path back to the simulation (which must be in car coordinates) since we are already in car coordinates and no translation is necessary.  
