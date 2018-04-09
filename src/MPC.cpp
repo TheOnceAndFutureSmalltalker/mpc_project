@@ -23,8 +23,7 @@ const double Lf = 2.67;
 
 // these are optimal values
 double ref_v = 10;
-double ref_epsi = 0;
-double ref_cte = 0;
+
 
 // This is our target speed in mph
 //double ref_v_mph = 10;
@@ -139,10 +138,8 @@ class FG_eval {
       //fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
       fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
       fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
-      fg[1 + cte_start + t] =
-          cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-      fg[1 + epsi_start + t] =
-          epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+      fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+      fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * dt);
     }
   }
 };
@@ -166,7 +163,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // state variables, 6, over the N steps, or N * 6
   // plus the number of transitions from one state to the next, N-1,
   // times the number of actuator variables, 2.
-  size_t n_vars = n_constraints + (N - 1) * 2;
+  size_t n_vars = N * 6 + (N - 1) * 2;
 
   // capture values of current state
   double x = state[0];

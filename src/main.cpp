@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "MPC.h"
 #include "json.hpp"
+#include <cstdlib>
 
 // for convenience
 using json = nlohmann::json;
@@ -92,20 +93,23 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
-          //cout << px << " " << py << " " << psi << " " << v << endl;
-          //cout << endl;
+          //cout << px << " " << py << " " << psi << " " << v << endl << endl;
 
           // from walkthrough video - transform from map space to car space
           for(int i=0;i<ptsx.size();i++)
           {
+            //cout << ptsx[i] << " " << ptsy[i] << " >>>>> ";
             // shift way points so that they start from origin
             double shift_x = ptsx[i]-px;
             double shift_y = ptsy[i]-py;
 
             // rotate points so that psi is 0
             ptsx[i] = (shift_x*cos(0-psi)-shift_y*sin(0-psi));
-            ptsy[i] = (shift_x*sin(0-psi)-shift_y*cos(0-psi));
+            ptsy[i] = (shift_x*sin(0-psi)+shift_y*cos(0-psi));
+            //cout << ptsx[i] << " " << ptsy[i] << endl;
           }
+
+          //cout << endl;
 
           Eigen::VectorXd xvals(6);
           Eigen::VectorXd yvals(6);
@@ -118,8 +122,12 @@ int main() {
           // double epsi = psi - atan(coeffs[1] + 2 * px * coeffs[2] + 3 * pos(px,2) * coeffs[3]);
           double epsi = -atan(coeffs[1]);
 
-          double steer_value = j[1]["steering_angle"];
-          double throttle_value = j[1]["throttle"];
+          //cout << cte << " " << epsi << endl;
+
+
+
+          //double steer_value = j[1]["steering_angle"];
+          //double throttle_value = j[1]["throttle"];
 
           // set up initial state vector
           Eigen::VectorXd state(6);
