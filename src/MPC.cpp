@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 15;
-double dt = 0.1;
+size_t N = 10;      // suggested by walkthrough video
+double dt = 0.1;    // dictated by simulator
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -21,12 +21,17 @@ double dt = 0.1;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
+// these are optimal values
+double ref_v = 10;
+double ref_epsi = 0;
+double ref_cte = 0;
+
 // This is our target speed in mph
-double ref_v_mph = 10;
+//double ref_v_mph = 10;
 // convert 1 mph to m/s
-double mph_to_mps = 0.44704;
+//double mph_to_mps = 0.44704;
 // Reference velocity in m/s
-double ref_v = ref_v_mph * mph_to_mps;
+//double ref_v = ref_v_mph * mph_to_mps;
 
 // Vector index offsets for all of the state variables and actuator variables.
 size_t x_start = 0;
@@ -60,16 +65,16 @@ class FG_eval {
     // minimize car's orientation away from center line,
     // and minimize how far we deviate from target velocity.
     for (int t = 0; t < N; t++) {
-      fg[0] += CppAD::pow(vars[cte_start + t], 2);
-      fg[0] += CppAD::pow(vars[epsi_start + t], 2);
+      fg[0] += 2000*CppAD::pow(vars[cte_start + t], 2);
+      fg[0] += 2000*CppAD::pow(vars[epsi_start + t], 2);
       fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
 
     // We want to minimize the use of steering wheel and accelerator.
     // That is we do not want to steer severely or accelerate/brake too hard.
     for (int t = 0; t < N - 1; t++) {
-      fg[0] += CppAD::pow(vars[delta_start + t], 2);
-      fg[0] += CppAD::pow(vars[a_start + t], 2);
+      fg[0] += 5*CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += 5*CppAD::pow(vars[a_start + t], 2);
     }
 
     // We do not want to change our steering angle or acceleration/braking
@@ -77,9 +82,12 @@ class FG_eval {
     // NOTE:  this is particularly interesting for acceleration which is already
     // a second order change, so the "change" in acceleration is a third order change!
     for (int t = 0; t < N - 2; t++) {
-      fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-      fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+      fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] += 10*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
+
+    // coefficients above from walktrhough video,
+    // makes certain errors like cte & epsi more costly than others
 
     /********** CONSTRAINT FUNCTIONS ************/
     // We add 1 to each of the starting indices due to cost being located at index 0 of `fg`.
@@ -116,10 +124,10 @@ class FG_eval {
       AD<double> delta0 = vars[delta_start + t - 1];
       AD<double> a0 = vars[a_start + t - 1];
 
-      // get y value, f0, for given x value, x0, of polynomial we are fitting
-      AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-      // calcualte psi des as arctan of slope coefficient
-      AD<double> psides0 = CppAD::atan(coeffs[1]);
+      // get y value, f0, for given x value, x0, of 3rd order polynomial we are fitting
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0 * x0 * x0;
+      // calcualte psi desired as atan of slope of polynomial at x0
+      AD<double> psides0 = CppAD::atan(3*coeffs[3]*x0*x0 + 2*coeffs[2]*x0 + coeffs[1]);
 
       // These are the constraining functions based on the MPC model
       // Basically we want the difference between the actual value at t+1
@@ -152,12 +160,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   // Set the number of constraints for our optimization problem.
   // This is the number of points we are projecting out, N, times the
-  // number of state variables, 6.
+  // number of equations, 6.
   size_t n_constraints = N * 6;
-  // Set the number of variables which is the number of constraints
+  // Set the number of variables which is the number of
+  // state variables, 6, over the N steps, or N * 6
   // plus the number of transitions from one state to the next, N-1,
   // times the number of actuator variables, 2.
-  size_t n_vars = N * 6 + (N - 1) * 2;
+  size_t n_vars = n_constraints + (N - 1) * 2;
 
   // capture values of current state
   double x = state[0];
@@ -183,10 +192,10 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   }
 
   // The upper and lower limits of delta are set to -25 and 25
-  // degrees (values in radians).
+  // degrees (values in radians) from simulator.
   for (int i = delta_start; i < a_start; i++) {
-    vars_lowerbound[i] = -0.436332;
-    vars_upperbound[i] = 0.436332;
+    vars_lowerbound[i] = -0.436332*Lf;
+    vars_upperbound[i] = 0.436332*Lf;
   }
 
   // Acceleration/decceleration upper and lower limits.
@@ -251,15 +260,29 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   // Cost
   auto cost = solution.obj_value;
-  std::cout << "Cost " << cost << std::endl;
+  //std::cout << "Cost " << cost << std::endl;
 
   // TODO: Return the first actuator values. The variables can be accessed with
   // `solution.x[i]`.
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  return {solution.x[x_start + 1],   solution.x[y_start + 1],
-          solution.x[psi_start + 1], solution.x[v_start + 1],
-          solution.x[cte_start + 1], solution.x[epsi_start + 1],
-          solution.x[delta_start],   solution.x[a_start]};
+//  return {solution.x[x_start + 1],   solution.x[y_start + 1],
+//          solution.x[psi_start + 1], solution.x[v_start + 1],
+//          solution.x[cte_start + 1], solution.x[epsi_start + 1],
+//          solution.x[delta_start],   solution.x[a_start]};
+
+  // result format from walkthrough video
+  vector<double> result;
+  // capture delta and a for first transition from current state to next state
+  result.push_back(solution.x[delta_start]);
+  result.push_back(solution.x[a_start]);
+
+  // capture calculated path with x's in even indexes, y's in odd indexes
+  for(int i=0;i<N-1;i++)
+  {
+    result.push_back(solution.x[x_start + i + 1]);
+    result.push_back(solution.x[y_start + i + 1]);
+  }
+  return result;
 }

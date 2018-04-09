@@ -92,10 +92,10 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
-          cout << px << " " << py << " " << psi << " " << v << endl;
-          cout << endl;
+          //cout << px << " " << py << " " << psi << " " << v << endl;
+          //cout << endl;
 
-          // from video - transfrom space to where car is at 0,0 and 0 psi
+          // from walkthrough video - transform from map space to car space
           for(int i=0;i<ptsx.size();i++)
           {
             // shift way points so that they start from origin
@@ -115,15 +115,20 @@ int main() {
 
           // calculate cte and psi
           double cte = polyeval(coeffs, 0);
-          //double epsi = psi - atan(coeffs[1] + 2 * px * coeffs[2] + 3 * pos(px,2) * coeffs[3]);
+          // double epsi = psi - atan(coeffs[1] + 2 * px * coeffs[2] + 3 * pos(px,2) * coeffs[3]);
           double epsi = -atan(coeffs[1]);
-
 
           double steer_value = j[1]["steering_angle"];
           double throttle_value = j[1]["throttle"];
 
+          // set up initial state vector
           Eigen::VectorXd state(6);
-          state << 0,0,0,v,cte,epsi;
+          // Due to latency , we will change initial state by applying model
+          // equations for latency period of 100 ms.  Currently, because of
+          // transformation above, x, y, and psi are all 0.  Therefore, in 100 ms,
+          // the car will have traveled down the x axis leaving y and psi at 0.
+          double latent_x = 0 + v * 0.1;
+          state << latent_x,0,0,v,cte,epsi;
 
           auto vars = mpc.Solve(state, coeffs);
 
