@@ -27,3 +27,21 @@ I used the solution code provided in the Udacity Lesson 20 Model Predictive Cont
 
 
 I also followed the Udacity walkthrough video for this project provided by <a href="https://youtu.be/bOQuhpz3YfU?list=PLAwxTw4SYaPnfR7TzRZN-uxlxGbqxhtm2">this link</a>.  The main point of interest in this approach is that the waypoints provided by the simulation are transposed from map coordinates to car coordinates with the car at (0,0) and zero angle of orientation.  The entire problem is then solved in car coordinates.  This makes it easy providing the waypoints and planned path back to the simulation (which must be in car coordinates) since we are already in car coordinates and no translation is necessary.  
+
+## Results
+
+I was able to get the car to perform up to 150 mph.  I was able to do this by increasing the cost coefficient of the CTE term so that the car stayed closer to the center.  However, it slowed down considerably on turns and never came close to 150 mph!  It maybe got to 95 mph or so.  This is due to lack of a good straight away.
+
+The curve after the bridge was the most difficult.  I ran into the second cement block there several times in tuning the program.
+
+I also ran it at 10 mph and found some strange results.  It zig-zagged quite a bit, stopped several times, and even went in reverse!
+
+Finally, regardless of reference speed, at the outset, the car would always zig zag back and forth for a few seconds before it seemed to get on track.  I don't know why this is.  Whatever the reason is, it may be related to why the car does not perform at very low reference speeds as mentioned above. 
+
+## Recommendations
+
+A higher cost coefficient for CTE allowed the car to have higher reference speeds.  This made for successful rns, however the car would slow down considerably on curves in order not to incur the high cost of CTE.  At lower speeds however, this penalty was too much and the car could have gone faster on the curves.  This leads me to believe that the cost coefficients could perhaps be functions of reference velocity.
+
+The predicted trajectory at slow speeds was much shorter thant the waypoints trajectory and at high speeds, extended far out in front of it and the first few segments lacked smoothness.  I think the distance and increments of the plot of the predicted trajectory could also be a function of reference velocity.
+
+I would also like to make referenc velocity a command line argument with a default of say, 60 mph.  This would make testing a little easier.
