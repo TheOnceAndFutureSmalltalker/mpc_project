@@ -117,7 +117,7 @@ int main() {
           yvals << ptsy[0], ptsy[1], ptsy[2], ptsy[3], ptsy[4], ptsy[5];
           auto coeffs = polyfit(xvals, yvals, 3);
 
-          // calculate cte and psi
+          // calculate cte and epsi
           double cte = polyeval(coeffs, 0);
           // double epsi = psi - atan(coeffs[1] + 2 * px * coeffs[2] + 3 * pos(px,2) * coeffs[3]);
           double epsi = -atan(coeffs[1]);
@@ -125,22 +125,40 @@ int main() {
           //cout << cte << " " << epsi << endl;
 
 
+          double steer_value = j[1]["steering_angle"];
+          double throttle_value = j[1]["throttle"];
 
-          //double steer_value = j[1]["steering_angle"];
-          //double throttle_value = j[1]["throttle"];
 
           // set up initial state vector
           Eigen::VectorXd state(6);
-          // Due to latency , we will change initial state by applying model
-          // equations for latency period of 100 ms.  Currently, because of
-          // transformation above, x, y, and psi are all 0.  Therefore, in 100 ms,
-          // the car will have traveled down the x axis leaving y and psi at 0.
-          double latent_x = 0 + v * 0.1;
-          state << latent_x,0,0,v,cte,epsi;
 
+          // Due to latency , we will change initial state by applying model
+          // equations for a latency period of 100 ms.  Currently, after
+          // transformation above, x, y, psi, and cte are all 0.  Therefore, within 100 ms,
+          // the car will have traveled down the x axis leaving y at 0.  The car may
+          // have pivoted and accelerated/decelerated as well.  All of which could have
+          // altered cte and epsi.
+          double Lf = 2.67;
+          double dt = 0.1;  // latency period in seconds
+          double delta = steer_value;
+          double a = throttle_value;
+
+          double latent_x = 0.0 + v * dt;
+          double latent_y = 0.0;  // after transformation, car is heading straight down x axis
+          double latent_psi = 0.0 + v* -delta/Lf*dt;
+          double latent_v = v + a*dt;
+          double latent_cte = 0.0 + v*sin(epsi)*dt;
+          double latent_epsi = epsi + v* -delta/Lf*dt;
+
+          // now populate initial state with new state juts calculated
+          state << latent_x, latent_y, latent_psi, latent_v, latent_cte, latent_epsi;
+
+          // find optimal path given current state and desired route
+          // This is where the magic happens!
           auto vars = mpc.Solve(state, coeffs);
 
-          //Display the waypoints/reference line
+          // Calculate the waypoints/reference line using the calculated polynomial from above
+          // and an arbitrary length of the road ahead
           vector<double> next_x_vals;
           vector<double> next_y_vals;
           double poly_inc = 2.5; // in meters
@@ -151,7 +169,7 @@ int main() {
             next_y_vals.push_back(polyeval(coeffs, poly_inc*i));
           }
 
-          //Display the MPC predicted trajectory
+          // Calculate the MPC predicted trajectory
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
           for(int i=2;i<vars.size();i++)
@@ -166,26 +184,13 @@ int main() {
             }
           }
 
-          double Lf = 2.67;
+          // Send values back to the simulator
+          // NOTE:  we will only be taking the first step in the optimal path calculated above!
           json msgJson;
-          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
-          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
           msgJson["steering_angle"] = vars[0]/(deg2rad(25)*Lf);
           msgJson["throttle"] = vars[1];
-
-
-
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Green line
-
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
-
-
-
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Yellow line
-
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 

@@ -3,6 +3,7 @@
 #include <cppad/ipopt/solve.hpp>
 #include "Eigen-3.3/Eigen/Core"
 
+
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
@@ -21,16 +22,9 @@ double dt = 0.1;    // dictated by simulator
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
-// these are optimal values
-double ref_v = 10;
+// this is the desired speed
+double ref_v = 100;
 
-
-// This is our target speed in mph
-//double ref_v_mph = 10;
-// convert 1 mph to m/s
-//double mph_to_mps = 0.44704;
-// Reference velocity in m/s
-//double ref_v = ref_v_mph * mph_to_mps;
 
 // Vector index offsets for all of the state variables and actuator variables.
 size_t x_start = 0;
@@ -43,13 +37,10 @@ size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
 
 
-
 class FG_eval {
  public:
   // Fitted polynomial coefficients
   Eigen::VectorXd coeffs;
-
-  // Constructor
   FG_eval(Eigen::VectorXd coeffs) { this->coeffs = coeffs; }
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
@@ -64,7 +55,7 @@ class FG_eval {
     // minimize car's orientation away from center line,
     // and minimize how far we deviate from target velocity.
     for (int t = 0; t < N; t++) {
-      fg[0] += 2000*CppAD::pow(vars[cte_start + t], 2);
+      fg[0] += 3000*CppAD::pow(vars[cte_start + t], 2);
       fg[0] += 2000*CppAD::pow(vars[epsi_start + t], 2);
       fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
@@ -84,9 +75,6 @@ class FG_eval {
       fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
       fg[0] += 10*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
-
-    // coefficients above from walktrhough video,
-    // makes certain errors like cte & epsi more costly than others
 
     /********** CONSTRAINT FUNCTIONS ************/
     // We add 1 to each of the starting indices due to cost being located at index 0 of `fg`.
@@ -201,6 +189,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     vars_upperbound[i] = 1.0;
   }
 
+
   // Lower and upper limits for the constraints
   // Should be 0 besides initial state.
   Dvector constraints_lowerbound(n_constraints);
@@ -255,21 +244,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // Check some of the solution values
   ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
 
-  // Cost
-  auto cost = solution.obj_value;
-  //std::cout << "Cost " << cost << std::endl;
-
-  // TODO: Return the first actuator values. The variables can be accessed with
-  // `solution.x[i]`.
-  //
-  // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
-  // creates a 2 element double vector.
-//  return {solution.x[x_start + 1],   solution.x[y_start + 1],
-//          solution.x[psi_start + 1], solution.x[v_start + 1],
-//          solution.x[cte_start + 1], solution.x[epsi_start + 1],
-//          solution.x[delta_start],   solution.x[a_start]};
-
-  // result format from walkthrough video
+   // result format from walkthrough video
   vector<double> result;
   // capture delta and a for first transition from current state to next state
   result.push_back(solution.x[delta_start]);
@@ -278,8 +253,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // capture calculated path with x's in even indexes, y's in odd indexes
   for(int i=0;i<N-1;i++)
   {
-    result.push_back(solution.x[x_start + i + 1]);
-    result.push_back(solution.x[y_start + i + 1]);
+    result.push_back(solution.x[x_start + i]);  // removed +1 from walkthrough video
+    result.push_back(solution.x[y_start + i]);
   }
   return result;
+
 }
