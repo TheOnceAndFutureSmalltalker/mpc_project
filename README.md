@@ -38,10 +38,12 @@ I also ran it at 10 mph and found some strange results.  It zig-zagged quite a b
 
 Finally, regardless of reference speed, at the outset, the car would always zig zag back and forth for a few seconds before it seemed to get on track.  I don't know why this is.  Whatever the reason is, it may be related to why the car does not perform at very low reference speeds as mentioned above. 
 
+In the current version of code, the reference velocity is set at 100 mph.
+
 ## Recommendations
 
-A higher cost coefficient for CTE allowed the car to have higher reference speeds.  This made for successful rns, however the car would slow down considerably on curves in order not to incur the high cost of CTE.  At lower speeds however, this penalty was too much and the car could have gone faster on the curves.  This leads me to believe that the cost coefficients could perhaps be functions of reference velocity.
+A higher cost coefficient for CTE allowed the car to have higher reference speeds.  This made for successful runs, however the car would slow down considerably on curves in order not to incur the high cost of CTE.  At lower speeds however, this penalty was too much and the car could have gone faster on the curves.  This leads me to believe that the cost coefficients could perhaps be functions of reference velocity.
 
-The predicted trajectory at slow speeds was much shorter thant the waypoints trajectory and at high speeds, extended far out in front of it and the first few segments lacked smoothness.  I think the distance and increments of the plot of the predicted trajectory could also be a function of reference velocity.
+The predicted trajectory at slow speeds was much shorter than the waypoints trajectory and at high speeds, extended far out in front of it and the first few segments lacked smoothness.  I think the distance and increments of the plot of the predicted trajectory could also be a function of reference velocity.
 
-I would also like to make referenc velocity a command line argument with a default of say, 60 mph.  This would make testing a little easier.
+I would also like to make reference velocity a command line argument with a default of say, 60 mph.  This would make testing a little easier.
