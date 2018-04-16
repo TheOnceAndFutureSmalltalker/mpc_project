@@ -34,7 +34,7 @@ Here I will cover the rubric points.
 
 ### The Model
 
-The model used to predict car behavior from one state to the next is a standard kinematic model.  First we consider the car's current state.  This includes the car's x and y position in map coordiates, its angle psi from the map x axis, and its current speed, v (note that even though we use v for speed, it does NOT denote velocity since it does not itself include direction, which is psi in our case.)  
+The model used to predict car behavior from one state to the next is a standard kinematic model.  First we consider the car's current state.  This includes the car's x and y position in map coordinates, its angle psi from the map x axis, and its current speed, v (note that even though we use v for speed, it does NOT denote velocity since it does not itself include direction, which is psi in our case.)  
 What moves the car from one state to the next are the actuators acceleration, a, (or throttle and may include braking or negative acceleration) and steering angle, delta.  
 
 A car's next state is a function of its current state and can be calculated using the following kinematic equations:
@@ -48,7 +48,7 @@ The implementation of this model is found in the file MPC.cpp, lines 119 - 130.
 
 ### Timestep Length and Elapsed Duration
 
-N is the number of states we intend to predict out into the future.  The larger N is, the closer we can get to the true path.  However, we pay a compuatational penalty for larger N and since this is a real time calculcation, and very numerically intensive, we run the risk of not completing the necessary calculations in time the larger N is.  So I went with the original recommendation of N=10 and this seemed to work fine.
+N is the number of states we intend to predict out into the future.  The larger N is, the closer we can get to the true path.  However, we pay a computatational penalty for larger N and since this is a real time calculation, and very numerically intensive, we run the risk of not completing the necessary calculations in time.  So I went with the original recommendation of N=10 and this seemed to work fine.
 
 The time between the N states we are predicting is dt.  We do not need to predict too far into the future so a dt = 100 mS is fine giving us a full future prediction of 10 * 0.1 = 1 second.  
 
@@ -67,7 +67,7 @@ This is done prior to fitting the polynomial.  This results in the initial state
 
 ### Model Predictive Control with Latency
 
-When we issue a command to the car to turn or accelarate, there is a delay in response time.  We call this latency.  The result is that by the time the car responds to the commands, it is no longer at its initial state.  To compensate for this, we can apply the kinematic model described above to the current state for the period of the latency to arrive at the current state which will actually be in effect once the steering and acceleration commands are realized.  This state, in car coordinates, is calculated as below:
+When we issue a command to the car to turn or accelarate, there is a delay in response time.  We call this latency.  The result is that by the time the car actually responds to the commands, it is no longer at its initial state.  To compensate for this, we can apply the kinematic model described above to the current state for the period of the latency to arrive at the state which will actually be in effect once the steering and acceleration commands are realized.  This state, in car coordinates, is calculated as below:
 
 latent_x = 0 + v * dt;
 latent_y = 0
